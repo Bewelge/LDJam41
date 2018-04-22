@@ -12,6 +12,28 @@ html, body {
   z-index: -11;
 
 }
+.upgrade {
+  width:80%;
+  height: 25px;
+  color:white;
+  border-radius: 0.5em;
+  padding-top:0.2em;
+  padding-left:0.2em;
+  padding-right:0.2em;
+  background-color: rgba(155,155,155,0.4);
+  text-align: center;
+}
+.upgrade:hover {
+  background-color: rgba(155,155,155,0.5); 
+}
+#upgrades {
+  position: absolute;
+  right: 0;
+  width:50%;
+  height:100%;
+  top:0;
+  z-index: 10;
+}
 canvas {
 	position: absolute;
 	top:0;

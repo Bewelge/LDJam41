@@ -26,6 +26,7 @@ var player = {
     lives: 3,
     weapL: null,
     weapR: null,
+    path:[],
     pos: {
         x: 0,
         y: 0,
@@ -44,6 +45,7 @@ var weaponPresets={
         bullet: "munition",
         dmg: 5,
         kickBack: 5,
+        priority:0,
         dims: {
             w:0.6,
             h:0.4,
@@ -63,6 +65,7 @@ var weaponPresets={
         img: "machineGun",
         bullet: "munition",
         dmg: 10,
+        priority:1,
         kickBack: 5,
         dims: {
             w:1.3,
@@ -83,6 +86,7 @@ var weaponPresets={
         img: "laserGun",
         bullet: "laser",
         dmg: 50,
+        priority:2,
         kickBack: 1,
         dims: {
             w:0.6,
@@ -218,8 +222,23 @@ $(".muteButton").on("click", function() {
 })
 
 
-
+var restarting=false;
 function restart() {
+    
+    paused=true;
+    damage=1;
+    doubleJump=false;
+    doubleJumped=false;
+    drops=1;
+    difficulty=0;
+    bricks=[];
+    score=0;
+    money=0;
+    for (let key in upgrades.list) {
+        upgrades.list[key].bought=0;
+    } 
+    document.getElementById("upgrades").innerHTML = "";
+    initWeaponUpgrades();
     solidBricks = [];
     for (let j = 0; j < gameH; j++) {
         solidBricks.push([]);
@@ -236,21 +255,42 @@ function restart() {
     });
 
     paused = false;
+    restarting=false;
     player.pos.x = width / 2;
     player.pos.y = groundY;
     dead = false;
-    Points = 0;
     /*bgAudio.playBackRate = 0.7;*/
     $("#gameOver").css("display", "none");
     $("#pauseButton").css("display", "block");
     $("#HUD").css("display", "block");
     $("#mainMenu").css("display", "none");
 
-
 }
 
-function start() {
+window.addEventListener("resize",function() {
+    width = window.innerWidth || document.documentElement.clientWidth / 1 || document.body.clientWidth / 1;
+    height = window.innerHeight || document.documentElement.clientHeight / 1 || document.body.clientHeight / 1;
+    width = Math.floor(width);
+    height = Math.floor(height);
+    $("body").css("width", width);
+    $("body").css("height", height);
+    hlfSize = Math.floor(Math.min(width, height) / 2);
+    qrtSize = Math.floor(hlfSize / 2);
+    let newtileSize = Math.floor(height / gameH); //Math.sqrt(width * height) / 50;
+    let scale = newtileSize/tileSize;
+    player.pos.x*=scale;
+    player.pos.y*=scale;
+    for (let key in bricks) {
+        bricks.pos.x*=scale;
+        bricks.pos.y*=scale;
 
+    }
+    /*gameH = Math.floor(height / tileSize);*/
+    gameW = 10;//Math.floor(width/2/tileSize);
+    groundY = Math.floor((gameH - 1) * tileSize);
+})
+function start() {
+    initWeaponUpgrades();
     dead = true;
     if (window.localStorage.getItem(("highScore"))) {
         highscore = window.localStorage.getItem("highScore");
@@ -264,7 +304,7 @@ function start() {
             console.error(e);
         }
     }
-
+    $("#mainMenu").fadeOut();
     width = window.innerWidth || document.documentElement.clientWidth / 1 || document.body.clientWidth / 1;
     height = window.innerHeight || document.documentElement.clientHeight / 1 || document.body.clientHeight / 1;
     width = Math.floor(width);
@@ -275,7 +315,7 @@ function start() {
     qrtSize = Math.floor(hlfSize / 2);
     tileSize = Math.floor(height / gameH); //Math.sqrt(width * height) / 50;
     /*gameH = Math.floor(height / tileSize);*/
-    gameW = Math.floor(width/2/tileSize);
+    gameW = 10;//Math.floor(width/2/tileSize);
     groundY = Math.floor((gameH - 1) * tileSize);
     player.pos.y = groundY;
     for (let j = 0; j < gameH; j++) {
@@ -311,7 +351,7 @@ function start() {
 
 
     $('#loadingScreen').fadeOut();
-    $('#mainMenu').fadeIn();
+    /*$('#mainMenu').fadeIn();*/
     $('#HUD').fadeIn();
 
     equipWeapon("right","handGun");
@@ -437,7 +477,7 @@ loadImges();
 
 
 
-function tick(restart) {
+function tick() {
     var now = window.performance.now(); // current time in ms
 
     /*if (restart) {
@@ -466,12 +506,16 @@ function tick(restart) {
             ticker = 0;
 
         }
-
-        step();
+        if(!restarting) {
+            step();
+        }
 
         if (moved) {
             moved = false;
         }
+    }
+    if(restarting) {
+        restart();
     }
 
     if (!paused) {
@@ -485,34 +529,53 @@ function tick(restart) {
 }
 var walking = false;
 var falling=0;
+var doubleJump=false;
+var doubleJumped=false;
+var movedd=false;
 function movePlayer() {
     walking = false;
-   
-
+    movedd = false;
    if (!onGround && !jumped) {
-        falling=Math.max(1,falling*1.05);
+        
+        falling=Math.max(0.001,falling*1.01);
         let groundTile = getGroundTile();
         let htOffGround = tileSize * groundTile - player.pos.y;
 
-        if (htOffGround>tileSize*0.05) {
-            movePlayerY((tileSize  + downClicked * tileSize)/4 *(Math.max(1,falling)*tileSize) / 50);
+        if (htOffGround>tileSize*0.001) {
+            movePlayerY((1  + downClicked) * tileSize *(falling*tileSize));
+            
         } else {
             onGround = true;
+            doubleJumped=false;
+
             falling=0;
             player.pos.y = tileSize * groundTile;
+            
         }
         
     } else if (jumped > 0) {
+        
         jumped--;
         movePlayerY(-0.005 * tileSize * jumped)
+        
         /*player.pos.y-=0.01*tileSize*jumped;*/
     }
-     if (upClicked && onGround) {
-        jumped = 40;
-        onGround = false;
+    if (upClicked && (onGround || (jumped < 4 && doubleJump && !doubleJumped))) {
+        if (!onGround) {
+            doubleJumped=true;
+            jumped=40;
+            
+        } else {
+            jumped = 40;
+            
+            onGround = false;
+            
+        }
+        addJumpEffect(player.pos.x,player.pos.y);
     }
      if (leftClicked) {
         movePlayerX(-0.12 * tileSize)
+        
         //player.pos.x -= 0.12 * tileSize;
         if (onGround) {
             walking = true;
@@ -520,6 +583,7 @@ function movePlayer() {
         
     } else if (rightClicked) {
         movePlayerX(+0.12 * tileSize)
+        
         //player.pos.x += 0.12 * tileSize;
         if (onGround) {
             walking = true;
@@ -527,6 +591,10 @@ function movePlayer() {
         
     }
     onGround=false;
+    player.dir = angle(mouseX, mouseY, player.pos.x, player.pos.y) + Math.PI * 0.5;
+    if(movedd) {
+        addPlayerTrail();
+    }
 }
 
 function movePlayerX(am) {
@@ -541,11 +609,30 @@ function movePlayerX(am) {
     if (nextTile<0 || nextTile > gameW-1) {
         return;
     }
+    let bool = true;
+    loop1:
+    for (let i = 0;i<bricks.length;i++) {
+        for (let j = 0;j<bricks[i].tiles.length;j++) {
+            let curYTile2 = Math.floor((bricks[i].pos.y+tileSize*bricks[i].tiles[j][1]) / tileSize);
+            
+            if (curYTile == curYTile2) {
+                
+                let curXTile2 = Math.floor((bricks[i].pos.x+tileSize*bricks[i].tiles[j][0]) / tileSize);
+                if (nextTile == curXTile2) {
+                    
+                    bool=false;
+                    break loop1;
+                }
+            }
+        }
+    }
     if (curXTile != nextTile) {
-        if (!solidBricks[curYTile][nextTile][0]) {
+        if (bool && !solidBricks[curYTile][nextTile][0]) {
+            movedd=true;
             player.pos.x += am;
         }
     } else {
+        movedd=true;
         player.pos.x += am;
     }
 }
@@ -561,12 +648,17 @@ function movePlayerY(am) {
     if (am > 0) {
         let groundTile = getGroundTile();
         let nextTile = Math.floor((player.pos.y + am) / tileSize);
-        if (groundTile == nextTile+1) {
-            player.pos.y = groundTile * tileSize;
-            console.log("bla");
-            onGround=true;
-            falling=0;
+        /*if (groundTile == nextTile+1) {*/
+            if(groundTile*tileSize<player.pos.y+am) {
+                movedd=true;
+                player.pos.y = groundTile * tileSize;
+                console.log("bla");
+                onGround=true;
+                falling=0;
+                doubleJumped=false;
+            /*}*/
         } else {
+            movedd=true;
             player.pos.y += am;
         }
 
@@ -574,9 +666,11 @@ function movePlayerY(am) {
         let topTile = getTopTile();
         let nextTile = Math.floor((player.pos.y + am) / tileSize);
         if (topTile == nextTile+1) {
+            movedd=true;
             player.pos.y = topTile * tileSize;
             jumped=0;
         } else {
+            movedd=true;
             player.pos.y += am;
         }
     }
@@ -586,6 +680,7 @@ function movePlayerY(am) {
 function getGroundTile() {
     let curYTile = Math.floor(player.pos.y / tileSize);
     let curXTile = Math.floor(player.pos.x / tileSize);
+try {
 
     while (!solidBricks[curYTile][curXTile][0] ) {
         curYTile++;
@@ -593,6 +688,26 @@ function getGroundTile() {
             return gameH-1;
         }
     }
+
+    
+        return curYTile-1;
+} catch(e) {
+    console.log(e);
+    console.log("no time for errors");
+}
+
+    
+}
+function getGroundTileX(x) {
+    let curYTile = Math.floor(player.pos.y / tileSize);
+    let curXTile = x
+    while (!solidBricks[curYTile][curXTile][0] ) {
+        curYTile++;
+        if (curYTile>gameH-1) {
+            return gameH-1;
+        }
+    }
+
     
         return curYTile-1;
 
@@ -612,10 +727,31 @@ function getTopTile() {
 
     }
 }
+var jumpEffects=[];
+function addJumpEffect(x,y) {
+    jumpEffects.push([x,y,20])
+}
+function drawJumpEffects(){
+    for (let key = jumpEffects.length-1;key>=0;key--) {
+        jumpEffects[key][2]--;
+        if (jumpEffects[key][2]<=0) {
+            jumpEffects.splice(key,1);
+        } else {
+            let c = jumpEffects[key];
+            let rat = Math.min(1,c[2]/20);
+            ctx.fillStyle="rgba(255,255,255,"+rat+")";
+            ctx.strokeStyle="rgba(0,0,0,0)";
+            ctx.beginPath();
+            ctx.ellipse(c[0],c[1],tileSize*(1-rat),tileSize*0.2*(1-rat),0,0,Math.PI*2);
+            ctx.fill();
+            ctx.closePath();
 
+            
+        }
+    }
+}
 function drawPlayer() {
     let l = width * 0.3;
-
 
     drawLegs();
     drawBody();
@@ -652,6 +788,18 @@ function drawHead() {
     if (walking) {
         rnd = Math.random() * 1 - Math.random() * 1;
     }
+  /*  if(downClicked) {
+        ctx.lineWidth=tileSize*0.5;
+        ctx.strokeStyle="rgb(255,255,255,0.05)";
+        ctx.beginPath();
+        for (let i = 1;i<5;i++) {
+            ctx.moveTo(player.pos.x,player.pos.y-tileSize*1.5);
+            ctx.lineTo(player.pos.x,player.pos.y-tileSize*1.5-tileSize*(i)*(falling*1000 - 1));
+            ctx.stroke();
+            
+        }
+        ctx.closePath();
+    }*/
     rnd += Math.random() * (kickBackL + kickBackR)/10-Math.random() * (kickBackL + kickBackR)/10;
     let htOffGround = groundY - player.pos.y;
     let offGroundMod = 0;
@@ -672,8 +820,9 @@ function drawHead() {
     ctx.rotate(Math.random() * kickBackR *Math.PI/ 200 - Math.random() * kickBackL *Math.PI/ 200);
 
 
-    ctx.drawImage(images.playerHead, rnd - tileSize * 0.5, rnd - tileSize * 1.5 + jumpMod - offGroundMod, tileSize * 1, tileSize * 1);
+    ctx.drawImage(images.playerHead, rnd - tileSize * 0.5, rnd - tileSize * 1.5 + jumpMod - offGroundMod - (tileSize*150*downClicked*falling), tileSize * 1, tileSize * (1+150*downClicked*falling) );
     ctx.restore();
+    
 }
 
 function drawArms() {
@@ -867,13 +1016,17 @@ function moveBricks() {
                                 if (player.pos.y < curY+tileSize && curY < player.pos.y) {
                                     bricks[br].tiles.splice(tile)
                                     console.log("you  hit it!");
+                                    jumped=20;
+                                    addJumpEffect(player.pos.x,player.pos.y);
                                     continue loop2;
 
                                 }    
                             }
                             if (player.pos.y - tileSize*1.5 < curY+tileSize && curY < player.pos.y - tileSize*1.5) {
-                                bricks[br].tiles.splice(tile)
+                                bricks[br].tiles.splice(tile);
+                                //addHit(player.pos.y,player.pos.x,curY+tileSize)
                                 console.log("you got hit");
+                                player.lives--;
                                 continue loop2;
 
                             }
@@ -1094,15 +1247,19 @@ function drawGame() {
     }*/
 
     drawBricks();
+    drawPlayerTrail();
     drawPlayer();
     drawCrossHair();
+    drawWeaponsMap();
     drawBullets();
     drawExplosions();
     drawBlood();
     drawParticles();
     drawCoins();
+    drawDamages();
     drawMoneyGains();
     drawAmmo();
+    drawJumpEffects();
 
 
     /*let pos = getHandPosL();
@@ -1124,7 +1281,13 @@ function drawAmmo() {
         ctx.fillText(tx,width*0.5*0.85-wd/2,height*0.95);
     }
     if (player.weapL) {
-
+        ctx.fillStyle = "white";
+        ctx.fillRect(width*0.5*0.25,height*0.9,width*0.5*0.2,height*0.08);
+        ctx.fillStyle = "black";
+        let tx = player.weapL.ammo;
+        
+        let wd = ctx.measureText(tx).width;
+        ctx.fillText(tx,width*0.5*0.35-wd/2,height*0.95);
     }
 }
 
@@ -1147,88 +1310,163 @@ function pause() {
 
 
 
+function drop(x,y) {
+    let rnd1 = Math.random();
+    let rnd2 = Math.random();
+    if (rnd1 < 0.5) {
+        spawnCoin(x,y,100+Math.ceil(Math.pow(1.2,difficulty)));
+    }
+    if(rnd2 <0.1) {
+        dropWeapon(x,y,"handGun");
+    } else if (rnd2 < 0.2) {
+        dropWeapon(x,y,"machineGun");
+    } else if (rnd2 < 0.4) {
+        dropWeapon(x,y,"laserGun");
+    } else if (rnd2 < 0.6) {
+        
+    } 
+}
+function dropWeapon(x,y,weap) {
+    weaponsMap.push([x,y,weap,Math.random()*Math.PI*2]);
+}
+var weaponsMap=[];
+function updateWeaponsOnMap() {
+    for (let key =weaponsMap.length-1;key>=0;key--) {
+        let w = weaponsMap[key];
+        let xTile = Math.floor(w[0]/tileSize);
+
+        let g = getGroundTileX(xTile)-1;
+        if (g*tileSize > w[1] ) {
+            w[1] += 0.01*tileSize;
+        } else if (g*tileSize<w[1] ) {
+            w[1] = g*tileSize;
+        }
+        let dis = Distance(player.pos.x,player.pos.y-tileSize*0.75,w[0],w[1]);
+        if(dis < tileSize*1) {
+            try {
+                if (player.weapL) {
+                    if (player.weapR.priority < player.weapL.priority) {
+                        if (player.weapR.img == w[2]) {
+                            player.weapR.ammo += weaponPresets[w[2]].ammo;
+                        } else if (player.weapR.priority<weaponPresets[w[2]].priority) {
+                            equipWeapon("right",w[2]);
+                        }
+                    } else if (player.weapR.priority > player.weapL.priority) {
+                        if (player.weapL.img == w[2]) {
+                            player.weapL.ammo += weaponPresets[w[2]].ammo;
+                        } else if (player.weapL.priority<weaponPresets[w[2]].priority) {
+                            equipWeapon("left",w[2]);
+                        }
+                    } else if (player.weapR.img == player.weapL.img) {
+                        if (player.weapL.img == w[2]) {
+                            player.weapL.ammo += weaponPresets[w[2]].ammo/2;
+                            player.weapR.ammo += weaponPresets[w[2]].ammo/2;
+                        } else if (player.weapL.priority<weaponPresets[w[2]].priority)
+                            equipWeapon("left",w[2]);
+                    }
+                    
+                } else {
+                    equipWeapon("left",w[2]);
+                    
+                }
+                
+            } catch(e) {
+                console.log(e);
+                console.log("catch you later");
+            }
+            equipWeapon()
+             ///function particleSplatter(x, y, dir, dur, size, speed, amount, angle, r, g, b, a) {
+            particleSplatter(w[0], w[1], 0, 15, 5.5, 5, 50, Math.PI*2, 0, 250, 0, 0.5)
+            weaponsMap.splice(key,1);
+        }
+    }
+}
+function drawWeaponsMap() {
+    for (let key in weaponsMap) {
+        let w = weaponsMap[key];
+        let rat =1 /  (images[w[2]].width/images[w[2]].height);
+        let siz = Math.cbrt(tileSize  * images[w[2]].width*images[w[2]].height);
+        let rad = siz*0.52;
+        ctx.fillStyle="rgba(0,255,0,0.5)";
+        ctx.strokeStyle="rgba(0,255,0,0.5)";
+        ctx.lineWidth=5;
+        ctx.beginPath();
+        ctx.arc(w[0],w[1],rad,0,Math.PI*2,0);
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();
+        ctx.drawImage(images[w[2]],w[0]-siz/2,w[1]-siz/2*rat,siz,siz*rat);
+    }
+}
+function addPlayerTrail(x,y) {
+     if (player.path.length > 50) {
+        player.path.splice(0, 1);
+    }
+      player.path.push([
+        player.pos.x + 16 * Math.cos(player.dir) + tileSize*0.4, 
+        player.pos.y + 16 * Math.sin(player.dir) - tileSize*0.75, 
+        120, 
+        player.dir,
+        0
+        ]);
+}
 function drawPlayerTrail() {
+    for (let key = player.path.length - 1; key >= 0; key--) {
+        player.path[key][2]--;
+        if (player.path[key][2] <= 0) {
+            player.path.splice(key, 1);
+        }
+    }
     if (player.path.length == 0) {
         return
     }
-    ctxBG.strokeStyle = "rgba(255,255,255,0.2)";
-    ctxBG.lineWidth = "17";
-    ctxBG.fillStyle = "rgba(255,255,255,0.4)";
-    let curX = player.x;
+
+    ctx.lineWidth = tileSize*0.8;
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    let curX = player.x+tileSize*0.4;
     let curY = player.y;
 
     if (player.path.length > 1) {
 
 
-        ctxBG.beginPath();
+        ctx.beginPath();
         //ctxBG.shadowBlur=15;
         //ctxBG.shadowColor="rgba(0,0,250,1)";
         //ctxBG.shadowOffsetY=15;
         //ctxBG.shadowOffsetX=15;
-        ctxBG.moveTo(curX, curY);
-        ctxBG.lineTo(
-            curX + Math.cos(player.dir) * 8,
-            curY + Math.sin(player.dir) * 8);
+        ctx.moveTo(curX, curY);
+        ctx.lineTo(
+            curX + Math.cos(player.dir) * tileSize*0.5,
+            curY + Math.sin(player.dir) * tileSize*0.5);
 
         for (let key = player.path.length - 1; key > 1; key--) {
+            let rat = player.path[key][2]/120
+            ctx.strokeStyle = "rgba(255,255,255,"+(rat*0.003)+")";
             player.path[key][4] += 0.05;
-            ctxBG.strokeStyle = "rgba(255,255,255," + player.path[key][2] / 2500 + ")";
-            let cx = (player.path[key][0] + Math.cos(player.path[key][3] - Math.PI * 0.5) * 10 * (player.path[key][4]) + player.path[key - 1][0] + Math.cos(player.path[key - 1][3] - Math.PI * 0.5) * 10 * (player.path[key][4])) / 2;
+            /*ctx.strokeStyle = "rgba(255,255,255," + player.path[key][2] / 10000 + ")";*/
+            let cx = (player.path[key][0]  + Math.cos(player.path[key][3] - Math.PI * 0.5) * 10 * (player.path[key][4])+ player.path[key - 1][0] + Math.cos(player.path[key - 1][3] - Math.PI * 0.5) * 10 * (player.path[key][4])) / 2;
 
-            let cy = (player.path[key][1] + Math.sin(player.path[key][3] - Math.PI * 0.5) * 10 * (player.path[key][4]) + player.path[key - 1][1] + Math.sin(player.path[key - 1][3] - Math.PI * 0.5) * 10 * (player.path[key][4])) / 2;
+            let cy = (player.path[key][1]  + Math.sin(player.path[key][3] - Math.PI * 0.5) * 10 * (player.path[key][4]) + player.path[key - 1][1] + Math.sin(player.path[key - 1][3] - Math.PI * 0.5) * 10 * (player.path[key][4])) / 2;
 
-            ctxBG.quadraticCurveTo(
+            ctx.quadraticCurveTo(
                 player.path[key][0] + Math.cos(player.path[key][3] - Math.PI * 0.5) * 10 * (player.path[key][4]),
                 player.path[key][1] + Math.sin(player.path[key][3] - Math.PI * 0.5) * 10 * (player.path[key][4]),
                 cx, cy);
-            ctxBG.stroke();
+            ctx.stroke();
         }
 
-        ctxBG.strokeStyle = "rgba(255,255,255," + player.path[0][2] / 2500 + ")";
+        /*ctx.strokeStyle = "rgba(255,255,255," + player.path[0][2] / 10000 + ")";*/
 
-        ctxBG.quadraticCurveTo(
-            player.path[1][0] + Math.cos(player.path[1][3] - Math.PI * 0.5) * 10 * (player.path[1][4]),
-            player.path[1][1] + Math.sin(player.path[1][3] - Math.PI * 0.5) * 10 * (player.path[1][4]),
-            player.path[0][0] + Math.cos(player.path[0][3] - Math.PI * 0.5) * 10 * (player.path[0][4]),
-            player.path[0][1] + Math.sin(player.path[0][3] - Math.PI * 0.5) * 10 * (player.path[0][4]));
+        ctx.quadraticCurveTo(
+            player.path[1][0] + Math.cos(player.path[0][3] - Math.PI * 0.5) * 10 * (player.path[0][4]),
+            player.path[1][1] + Math.sin(player.path[0][3] - Math.PI * 0.5) * 10 * (player.path[0][4]),
+            player.path[0][0] + Math.cos(player.path[1][3] - Math.PI * 0.5) * 10 * (player.path[1][4]),
+            player.path[0][1] + Math.sin(player.path[1][3] - Math.PI * 0.5) * 10 * (player.path[1][4]));
 
-        ctxBG.stroke();
+        ctx.stroke();
 
 
 
-        ctxBG.beginPath();
-        //ctxBG.shadowBlur=15;
-        //ctxBG.shadowColor="rgba(0,0,250,1)";
-        //ctxBG.shadowOffsetY=15;
-        //ctxBG.shadowOffsetX=15;
-        ctxBG.moveTo(curX, curY);
-        ctxBG.lineTo(
-            curX + Math.cos(player.dir) * 8,
-            curY + Math.sin(player.dir) * 8);
-
-        for (let key = player.path.length - 1; key > 1; key--) {
-            player.path[key][4] += 0.05;
-            ctxBG.strokeStyle = "rgba(255,255,255," + player.path[key][2] / 2500 + ")";
-            let cx = (player.path[key][0] + Math.cos(player.path[key][3] + Math.PI * 0.5) * 10 * (player.path[key][4]) + player.path[key - 1][0] + Math.cos(player.path[key - 1][3] + Math.PI * 0.5) * 10 * (player.path[key][4])) / 2;
-
-            let cy = (player.path[key][1] + Math.sin(player.path[key][3] + Math.PI * 0.5) * 10 * (player.path[key][4]) + player.path[key - 1][1] + Math.sin(player.path[key - 1][3] + Math.PI * 0.5) * 10 * (player.path[key][4])) / 2;
-
-            ctxBG.quadraticCurveTo(
-                player.path[key][0] + Math.cos(player.path[key][3] + Math.PI * 0.5) * 10 * (player.path[key][4]),
-                player.path[key][1] + Math.sin(player.path[key][3] + Math.PI * 0.5) * 10 * (player.path[key][4]),
-                cx, cy);
-            ctxBG.stroke();
-        }
-
-        ctxBG.strokeStyle = "rgba(255,255,255," + player.path[0][2] / 2500 + ")";
-
-        ctxBG.quadraticCurveTo(
-            player.path[1][0] + Math.cos(player.path[1][3] + Math.PI * 0.5) * 10 * (player.path[1][4]),
-            player.path[1][1] + Math.sin(player.path[1][3] + Math.PI * 0.5) * 10 * (player.path[1][4]),
-            player.path[0][0] + Math.cos(player.path[0][3] + Math.PI * 0.5) * 10 * (player.path[0][4]),
-            player.path[0][1] + Math.sin(player.path[0][3] + Math.PI * 0.5) * 10 * (player.path[0][4]));
-
-        ctxBG.stroke();
 
 
     }
@@ -1259,9 +1497,11 @@ function spawn() {
     }
 }
 function step() {
+    if (restarting) return;
     movePlayer();
     moveBricks();
     moveBullets();
+    updateWeaponsOnMap();
     spawn();
     if (mousedown) {
         shootTicker++;
@@ -1303,6 +1543,7 @@ function step() {
             }
 
         }
+
 
     } else {
         if (bulletsLaserL || bulletsLaserR) {
@@ -1435,7 +1676,7 @@ function particleSplatter(x, y, dir, dur, size, speed, amount, angle, r, g, b, a
         ]);
     }
 }
-
+var kicked=0;
 function drawParticles()  {
     for (let key in particleSplatters) {
         particleSplatters[key][3]--;
@@ -1448,6 +1689,7 @@ function drawParticles()  {
             particleSplatters[key][1] += particleSplatters[key][5] * Math.sin(particleSplatters[key][2]);
 
             ctx.fillStyle = "rgba(" + particleSplatters[key][6] + "," + particleSplatters[key][7] + "," + particleSplatters[key][8] + "," + (particleSplatters[key][9] * particleSplatters[key][3] / 5) + ")";
+            ctx.strokeStyle = "rgba(" + Math.floor(particleSplatters[key][6]*(1+Math.random()*0.2-Math.random()*0.2)) + "," + Math.floor(particleSplatters[key][7]*(1+Math.random()*0.2-Math.random()*0.2)) + "," + Math.floor(particleSplatters[key][8]*(1+Math.random()*0.2-Math.random()*0.2)) + "," + (particleSplatters[key][9] * particleSplatters[key][3] / 5) + ")";
             /*}*/
             ctx.beginPath();
             ctx.arc(particleSplatters[key][0], particleSplatters[key][1], siz, 0, Math.PI * 2, 0);
@@ -1473,7 +1715,7 @@ function drawExplosions() {
         } else {
             let rat = 1.01-explosions[key][3]/15;
             let r1 = explosions[key][2]*(0.5 - ((explosions[key][3]%5)-5)/10);
-            let r2 = explosions[key][2];
+            let r2 = explosions[key][2]*(1.5-explosions[key][3]/15);
 
             ctx.fillStyle="rgba(255,255,255,0.4)";
             ctx.beginPath();
@@ -1483,7 +1725,7 @@ function drawExplosions() {
                 explosions[key][1],
                 rat*r1*(1+Math.random()*0.4-Math.random()*0.4),
                 rat*r2*(1+Math.random()*0.4-Math.random()*0.4),
-                explosions[key][3]*Math.PI*0.1%Math.PI,
+                Math.random()*Math.PI*0.3+explosions[key][3]*Math.PI*0.1%Math.PI,
                 0,Math.PI*2);
             ctx.fill();
             ctx.closePath();
@@ -1496,7 +1738,7 @@ function drawExplosions() {
                 explosions[key][1],
                 rat*0.8*r1*(1+Math.random()*0.4-Math.random()*0.4),
                 rat*0.8*r2*(1+Math.random()*0.4-Math.random()*0.4),
-                Math.PI*0.2+explosions[key][3]*Math.PI*0.1%Math.PI,
+                Math.random()*Math.PI*0.3+Math.PI*0.2*(explosions[key][3]%2)*Math.PI*0.1%Math.PI,
                 0,Math.PI*2);
             ctx.fill();
             ctx.closePath();
@@ -1509,7 +1751,7 @@ function drawExplosions() {
                 explosions[key][1],
                 rat*0.6*r1*(1+Math.random()*0.4-Math.random()*0.4),
                 rat*0.6*r2*(1+Math.random()*0.4-Math.random()*0.4),
-               Math.PI*0.4+explosions[key][3]*Math.PI*0.1%Math.PI,
+                Math.random()*Math.PI*0.3+Math.PI*0.4*(explosions[key][3]%3)*Math.PI*0.1%Math.PI,
                 0,Math.PI*2);
             ctx.fill();
             ctx.closePath();
@@ -1726,7 +1968,7 @@ function spawnBullet(side, x, y, dmg) {
     }
     ///function particleSplatter(x, y, dir, dur, size, speed, amount, angle, r, g, b, a) {
     
-    particleSplatter(x1, y1, Math.random()*Math.PI*2, 15, 0.5, 5, 5, Math.random()*Math.PI*2, 250, 250, 250, 0.5)
+    particleSplatter(x1, y1, player.dir+Math.PI*0.5, 15, 1.5, 5, 5, Math.PI*0.4, 250, 250, 250, 0.5)
     //now get ang between start and end pos of bullet
     let ang = angle(x1, y1, mouseX, mouseY);
     bullets.push([x1, y1, ang, dmg])
@@ -1860,7 +2102,7 @@ function BresenhamLine(x0,y0,x1,y1) {
 function damageTile(tile,dmg) {
 
 }
-function dropWeapon(side) {
+function discardWeapon(side) {
     if (side == "left") {
         player.weapL=null;
     } else if (side == "right") {
@@ -1891,13 +2133,17 @@ function moveBullets() {
 
                         if (bullets[key][0] > tx && bullets[key][0] < tx + tileSize) {
                             if (bullets[key][1] > ty && bullets[key][1] < ty + tileSize) {
-                                solidBricks[i][j][1] -= bullets[key][3];
-                                addExplosion(bullets[key][0], bullets[key][1], tileSize*0.5);
-                                
-                                particleSplatter(bullets[key][0], bullets[key][1], Math.random()*Math.PI*2, 15, 0.5, 5, 5, Math.random()*Math.PI*2, 250, 250, 250, 0.5)
+                                solidBricks[i][j][1] -= bullets[key][3] * damage;
+                                addDamage(bullets[key][0], bullets[key][1],bullets[key][3]);
+
+                                addExplosion(bullets[key][0], bullets[key][1], Math.random()*tileSize*0.4+tileSize*0.1);
+                                // particleSplatter(x, y, dir, dur, size, speed, amount, angle, r, g, b, a)
+                                particleSplatter(bullets[key][0], bullets[key][1], -bullets[key][2], 10+Math.random()*10, Math.random()*2+2, 3+Math.random()*10, Math.random()*5+5, Math.PI*0.5, 250, 150+Math.floor(Math.random()*100), Math.floor(Math.random()*0), 0.5)
+
                                 bullets.splice(key, 1);
                                 console.log("coll");
                                 if (solidBricks[i][j][1] <= 0) {
+                                    particleSplatter(j*tileSize+tileSize/2, i*tileSize+tileSize/2, player.dir+Math.PI*0.5, 35, 5.5, 5, 5, Math.PI*2, 150, 150, 150, 0.3)
                                     console.log("killed");
                                     solidBricks[i][j][1]=0;
                                     solidBricks[i][j][0]=false;
@@ -1920,20 +2166,26 @@ function moveBullets() {
 
                     if (bullets[key][0] > tx && bullets[key][0] < tx + tileSize) {
                         if (bullets[key][1] > ty && bullets[key][1] < ty + tileSize) {
-                            bricks[i].tiles[j][2] -= bullets[key][3];
+                            bricks[i].tiles[j][2] -= bullets[key][3] * damage;
+                            addDamage(bullets[key][0],bullets[key][1],bullets[key][3]*damage)
                             
-                            particleSplatter(bullets[key][0], bullets[key][1], Math.random()*Math.PI*2, 15, 0.5, 5, 5, Math.random()*Math.PI*2, 250, 250, 250, 0.5)
-                            addExplosion(bullets[key][0], bullets[key][1], 10);
+                            particleSplatter(bullets[key][0], bullets[key][1], -bullets[key][2], 10+Math.random()*10, Math.random()*2+2, 3+Math.random()*10, Math.random()*5+5, 0.5*Math.PI, 250, 150+Math.floor(Math.random()*100), Math.floor(Math.random()*0), 0.5)
+                            addExplosion(bullets[key][0], bullets[key][1], Math.random()*tileSize*0.4+tileSize*0.1);
                             
 
                             if (bricks[i].tiles[j][2] <= 0) {
                                 console.log("killed");
-                                if (Math.random()>0) {
-                                    spawnCoin(
+                                
+                                    drop(bricks[i].pos.x+bricks[i].tiles[j][0]*tileSize+tileSize/2,
+                                        bricks[i].pos.y+bricks[i].tiles[j][1]*tileSize+tileSize/2);
+                                    /*spawnCoin(
                                         bricks[i].pos.x+bricks[i].tiles[j][0]*tileSize+tileSize/2,
-                                        bricks[i].pos.y+bricks[i].tiles[j][1]*tileSize+tileSize/2,100);
-                                }
+                                        bricks[i].pos.y+bricks[i].tiles[j][1]*tileSize+tileSize/2,100);*/
+                                
+                                particleSplatter(bricks[i].pos.x+bricks[i].tiles[j][0]*tileSize+tileSize/2, bricks[i].pos.y+bricks[i].tiles[j][1]*tileSize+tileSize/2, player.dir+Math.PI*0.5, 15, 5.5, 5, 5, Math.PI*2, 150, 150, 150, 0.3)
                                 bricks[i].tiles.splice(j, 1);
+                                ///function particleSplatter(x, y, dir, dur, size, speed, amount, angle, r, g, b, a) {
+    
                                 /*addExplosion(tx, ty, 10);*/
                                 //bloodSplatter(bricks[i].pos.x, bricks[i].pos.y, bullets[key][2], 50, 10, 50, 10, bullets[key][2]);
 
@@ -1986,18 +2238,22 @@ function moveBullets() {
                             
                             let dis = Distance(x,y,x2,y2);
                             if(dis<lowDis) {
-                                bricks[key].tiles[j][2] -= bulletsLaserR[3];
+
+                                bricks[key].tiles[j][2] -= bulletsLaserR[3]*damage;
+                                addDamage(bulletsLaserR[4], bulletsLaserR[5],bulletsLaserR[3]*damage)
                                 bulletsLaserR[4] = x + Math.cos(ang)*(dis);
                                 bulletsLaserR[5] = y+tileSize + Math.sin(ang)*(dis);
                                 lowDis=dis;
                                 particleSplatter(bulletsLaserR[4], bulletsLaserR[5], bulletsLaserR[2]-Math.PI*0.5, 8, 2+Math.random()*2, 15, 2, Math.random()*Math.PI*2, 250, 0, 0, 0.5)
                                 if (bricks[key].tiles[j][2] <= 0) {
                                     console.log("killed");
-                                    if (Math.random()>0) {
-                                        spawnCoin(
+                                    
+                                    drop(bricks[key].pos.x+bricks[key].tiles[j][0]*tileSize+tileSize/2,
+                                        bricks[key].pos.y+bricks[key].tiles[j][1]*tileSize+tileSize/2)
+                                        /*spawnCoin(
                                             bricks[key].pos.x+bricks[key].tiles[j][0]*tileSize+tileSize/2,
-                                            bricks[key].pos.y+bricks[key].tiles[j][1]*tileSize+tileSize/2,100);
-                                    }
+                                            bricks[key].pos.y+bricks[key].tiles[j][1]*tileSize+tileSize/2,100);*/
+                                    
                                     bricks[key].tiles.splice(j, 1);
                                     /*addExplosion(tx, ty, 10);*/
                                     //bloodSplatter(bricks[i].pos.x, bricks[i].pos.y, bullets[key][2], 50, 10, 50, 10, bullets[key][2]);
@@ -2037,7 +2293,7 @@ function moveBullets() {
                             if (y > y2 && y < y2 + tileSize) {
                                  let dis = Distance(x,y,x2,y2);
                                 if(dis<lowDis) {
-                                    solidBricks[key][j][1] -= bulletsLaserR[3];
+                                    solidBricks[key][j][1] -= bulletsLaserR[3]*damage;
                                     bulletsLaserR[4] = x + Math.cos(ang)*(dis);
                                     bulletsLaserR[5] = y+tileSize + Math.sin(ang)*(dis);
                                     lowDis=dis;
@@ -2066,9 +2322,11 @@ function moveBullets() {
     
         player.weapR.ammo-=1;
         if(player.weapR.ammo<=0) {
-            dropWeapon("right");
+            discardWeapon("right");
             return;
         }
+    } else {
+        bulletsLaserR=null;
     }
     if (bulletsLaserL && player.weapL) {
 
@@ -2102,6 +2360,7 @@ function moveBullets() {
                     
                         if (y2 < y && y2 +tileSize > y) {
                             bricks[key].tiles[j][2] -= bulletsLaserL[3];
+                            addDamage(bulletsLaserL[4], bulletsLaserL[5],bulletsLaserL[3]*damage)
                             
                             let dis = Distance(x,y,x2,y2);
                             if(dis<lowDis) {
@@ -2118,11 +2377,12 @@ function moveBullets() {
 
                             if (bricks[key].tiles[j][2] <= 0) {
                                 console.log("killed");
-                                if (Math.random()>0) {
-                                    spawnCoin(
+                                drop(bricks[key].pos.x+bricks[key].tiles[j][0]*tileSize+tileSize/2,
+                                    bricks[key].pos.y+bricks[key].tiles[j][1]*tileSize+tileSize/2)
+                                    /*spawnCoin(
                                         bricks[key].pos.x+bricks[key].tiles[j][0]*tileSize+tileSize/2,
-                                        bricks[key].pos.y+bricks[key].tiles[j][1]*tileSize+tileSize/2,100);
-                                }
+                                        bricks[key].pos.y+bricks[key].tiles[j][1]*tileSize+tileSize/2,100);*/
+                                
                                 bricks[key].tiles.splice(j, 1);
                                 /*addExplosion(tx, ty, 10);*/
                                 //bloodSplatter(bricks[i].pos.x, bricks[i].pos.y, bullets[key][2], 50, 10, 50, 10, bullets[key][2]);
@@ -2183,12 +2443,36 @@ function moveBullets() {
         };
         player.weapL.ammo-=1;
         if(player.weapL.ammo<=0) {
-            dropWeapon("left");
+            discardWeapon("left");
             return;
+        }
+    } else {
+        bulletsLaserL=null;
+    }
+}
+var damages=[];
+function addDamage(x,y,am) {
+    let rnd = Math.random();
+    while(damages.length>50) {
+        damages.splice(0,1)
+    }
+    damages.push([x,y,am,Math.random()*Math.PI*2,Math.ceil(rnd*50),Math.ceil(rnd*50)])
+}
+function drawDamages() {
+    for (let key=damages.length-1;key>=0;key--) {
+        damages[key][4]--;
+        if (damages[key][4]<=0) {
+            damages.splice(key,1);
+        } else {
+            let d = damages[key];
+            damages[key][0]+=Math.cos(d[3]) * 5*(1-d[4]/d[5]);
+            damages[key][1]+=Math.cos(d[3]) * 5*(1-d[4]/d[5]);
+            ctx.font= 10+10*Math.ceil(d[4]/d[5])+"px Arial black";
+            ctx.fillStyle="rgba(255,255,255,"+d[4]/d[5]+")";
+            ctx.fillText(d[2],d[0],d[1]);
         }
     }
 }
-
 function collidesBB(bullet, brick) {
     for (let i = 0; i < brick.tiles.length; i++) {
         let tx = brick.pos.x + brick.tiles[i][0] * tileSize;
@@ -2210,6 +2494,8 @@ function drawBullets() {
         ctx.beginPath();
         for (let i = 0;i<15;i++) {
             ctx.fillStyle="rgba(255,255,255,0.05)";
+            ctx.strokeStyle="rgba(255,255,255,0.04)";
+            ctx.lineWidth=0.5+Math.random();;
             ctx.arc(b[0]-Math.cos(b[2])*(2*i+1),b[1]-Math.sin(b[2])*(2*i+1),tileSize*0.05125,0,Math.PI+2,0);
             ctx.fill();
             
@@ -2218,7 +2504,7 @@ function drawBullets() {
         ctx.closePath();
         ctx.drawImage(images.bullet, b[0] - tileSize * 0.015, b[1] - tileSize * 0.015, tileSize * 0.125, tileSize * 0.125)
     }
-    if (bulletsLaserL) {
+    if (bulletsLaserL && player.weapL && player.weapL.img=="laserGun") {
         
         bulletTickL= ((bulletTickL+1) % 10);
         ctx.beginPath();
@@ -2231,7 +2517,7 @@ function drawBullets() {
         }
         ctx.closePath();
     }
-    if (bulletsLaserR) {
+    if (bulletsLaserR && player.weapR && player.weapR.img=="laserGun") {
         bulletTickR= ((bulletTickR+1) % 10);
         ctx.beginPath();
         for (let i = 0;i<5;i++) {
@@ -2323,18 +2609,20 @@ function countFrom(that, arr, key) {
     return am;
 }
 
-function createDiv(id, className, w, h, t, l, mL, mT, abs) {
-    let tmpDiv = document.createElement("div");
-    tmpDiv.style.width = w;
-    tmpDiv.style.height = h;
-    tmpDiv.style.marginTop = mT;
-    tmpDiv.style.marginLeft = mL;
-    tmpDiv.id = id;
-    tmpDiv.className = className;
-    if (abs) {
-        tmpDiv.style.position = "absolute";
+function createDiv(id, classNames, styles, props, attributes) {
+    let div = document.createElement("div");
+    div.id = id;
+    div.className = classNames;
+    for (let key in styles) {
+        div.style[key] = styles[key];
     }
-    return tmpDiv;
+    for (let key in props) {
+        div[key] = props[key];
+    }
+    for (let key in attributes) {
+        div.setAttribute(key,attributes[key]);
+    }
+    return div;
 }
 
 function createCanvas(w, h, mL, mT, id, className, L, T, abs) {
@@ -2503,11 +2791,92 @@ function checkReadImages() {
 
     }
 }
+var weaponList = {
+    handGun: {
+        damage: 15,
+        fireRate: 50,
+        ammo: 25,
+        frequency: 0.1,
+    },
+    machineGun: {
+        damage: 10,
+        fireRate: 5,
+        ammo: 150,
+        frequency: 0,
+    },
+    laserGun: {
+        damage: 10,
+        fireRate: 50,
+        ammo: 250,
+        frequency: 0,
+    },
+    rocketGun: {
+        damage: 100,
+        fireRate: 150,
+        ammo: 5,
+        frequency: 0,
+    },
+}
+function initWeaponUpgrades() {
+    for (let key in upgrades.list) {
+        let div = createDiv(key,"upgrade",{
+        },{
+            
+        })
+        div.addEventListener("click",function() {
 
+            upgrades.buy(key);
+        })
+        let tit = createDiv(key+"title","upgradeTitle",{
+
+        },{
+            innerHTML: upgrades.list[key].name,
+        })
+        let pr =  createDiv(key+"price","upgradePrice",{
+
+        },{
+            innerHTML: "$" + upgrades.list[key].price(),
+        })
+        div.appendChild(tit);
+        div.appendChild(pr);
+        document.getElementById("upgrades").appendChild(div)
+    }
+}
+/*var weapUps = {
+    handGun: {
+        damage: {
+
+        }
+        fireRate:
+        ammo:
+        frequency: 
+    }
+}*/
+function canAfford(key) {
+    if (money >= upgrades.list[key].price()) {
+        return true
+    }
+    return false;
+}
 var upgrades =  {
     reset:function() {
         for (let key in this.list) {
             this.list[key].bought=0;
+        }
+    },
+    buy:function(that) {
+        let pr = upgrades.list[that].price();
+        if (pr<= money && upgrades.list[that].bought < upgrades.list[that].max) {
+            money-=pr;
+            updateMoney=true;
+            upgrades.list[that].effect();
+            upgrades.list[that].bought++;
+            if (upgrades.list[that].bought>= upgrades.list[that].max) {
+                $("#"+that).remove();
+
+            }
+        } else {
+            console.log("cant afford")
         }
     },
     list: {
@@ -2515,19 +2884,32 @@ var upgrades =  {
             key:"doubleJump",
             name:"Double Jump",
             price: function() {
-
+                return 500;
             },
+            effect: function() {
+                doubleJump=true
+            },
+            max:1,
             bought:0,
             
         },
-        damage: {
-            key:"damage",
-            name:"Increase Damage",
+        doubleDmg: {
+            key:"doubleDmg",
+            name:"Damage x2",
             price: function() {
-
+                return 100 * Math.pow(1+this.bought,2);
             },
+            effect: function() {
+                damage+=Math.max(1,damage);
+                
+            },
+            max:100,
             bought:0,
             
-        }
+        },
+
+        
+      
     }
 }
+var damage=1;
