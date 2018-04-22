@@ -1,0 +1,108 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+
+
+
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="manifest" href="site.webmanifest">
+        <link rel="apple-touch-icon" href="icon.png">
+        <!-- Place favicon.ico in the root directory -->
+
+        <link rel="stylesheet" href="css/main.css">
+        <link href="https://fonts.googleapis.com/css?family=Ranchers" rel="stylesheet">
+
+    </head>
+    <body>
+        <div id='loadingScreen'>
+            <div id='loadingText'>
+            Loading
+            </div>
+        </div>
+        <button class='muteButton' style='position:absolute;right:80px;top:16px;z-index:100' onclick="muteAudio()"><img src="img/audio.png"/></button>
+        <button class='muteButton' style='position:absolute;right:16px;top:16px;z-index:100' onclick="muteMusic()"><img src="img/music.png"/></button>
+    <div id="HUD" style='display:none'>
+        <div id='score'>Score </br>0</div>
+        <div id='money'>Money </br>$0</div>
+    </div>
+        <button id="pauseButton" class='pauseButton' style='position:absolute;left:16px;top:16px;z-index:100' onclick="pause()"><img src="img/pause.png"/></button>
+        <div class='dialog' id="instructions" >Instructions: </br>
+           <p>Use Arrow keys to Move.</p>
+            <p>Use Mouse to aim!</p>
+            <p>Survive by destroying the block or simply playing Tetris!</p>
+            <button class="menuButton" style='margin-left:0px' onclick="hideInstructions()">Close</button>
+        </div>
+        <div class='dialog' id="changelog" >Changelog: </br>
+            <button class="menuButton" style='margin-left:0px' onclick="hideChangelog()">Close</button>
+           
+
+
+        </div>
+        <div class='dialog' id="firstTime" >Welcome to the Game!</br>
+            <button class="menuButton" style='margin-left:0px' onclick="hideFirstTime()">Close</button>
+            <p>This little game was made by bewelge in little over 24 hours for the Ludum Dare #41 compo</p>
+        </br>
+            <p>Use Arrow keys to Move.</p>
+            <p>Use Mouse to aim!</p>
+            <p>Survive by destroying the block or simply playing Tetris!</p>
+            
+        </div>
+        <div class='dialog' id="credits" >Credits: </br>
+            <p>Game was made in its entirety by bewelge, originally for the Ludum Dare #41 Compo </p>
+            <p><a href="https://ldjam.com/events/ludum-dare/41/null">LDJam Link</a></p>
+
+
+            <button class="menuButton" style='margin-left:0px' onclick="hideCredits()">Close</button>
+        </div>
+        <div id="gameOver" class="menuScreen" style="position:absolute;display:none;left:0;top:0;width:100%;height:100%;z-index:99">
+            <div style="width:100%;text-align:center;" id="killMessage"></div>
+            <div style='height:5%' class="buttons">
+            <button style='float:left;margin-left:5%' class="gameOverButton" onclick="restart()">Restart</button>
+            
+            <button style='float:right;margin-right:5%' class="gameOverButton" onclick="mainMenu()">Main Menu</button>
+            </div>
+            
+            
+            <div id="scoreBoard" style="text-align:center">
+                <div style="float:left;width:100%"><span><span class="newHighscore">new </span> High-Score: <span id="highscore"></span><span class="newHighscore">!!</span></span></div>
+
+                <div class='scoreLine' style="text-align:left">Final Score: <span style="float:right" id="scoreFinal"></span></div>
+                </br>
+
+            </div>
+
+            
+
+        </div>
+        <div id="pauseScreen" style='display:none' class="menuScreen">
+
+        </div>
+        <div id="mainMenu" class="menuScreen" style='display:none'>
+            <div style='width:100%;text-align:center;' id="title">Tetrisnator</div>
+            <div class="" style="width:100%;height:80%">
+                <button onclick="restart()" class="menuButton">Start</button>
+                <button onclick="showInstructions()" class="menuButton">Instructions</button>
+                <button onclick="showChangelog()" class="menuButton">Changelog</button>
+                <button onclick="showCredits()" class="menuButton">Credits</button>
+            </div>
+
+        </div>
+        <!--[if lte IE 9]>
+            <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>
+        <![endif]-->
+
+        <!-- Add your site or application content here -->
+
+
+        <script src="js/vendor/modernizr-3.5.0.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+        <script>window.jQuery || document.write('<script src="js/vendor/jquery-3.2.1.min.js"><\/script>')</script>
+        <script src="js/main.js"></script>
+    </body>
+</html>

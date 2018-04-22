@@ -1,0 +1,55 @@
+html, body {
+  margin:0px;
+  padding:0px;
+  height: 100%;
+  width:100%;
+  background-color: black;
+  color: white;
+  font-size: 2.5vmin;
+  position: absolute;
+  top:0;
+  left: 0;
+  z-index: -11;
+
+}
+canvas {
+	position: absolute;
+	top:0;
+	left: 0;
+	cursor:none;
+}
+#money {
+  border-radius:1em;
+  
+  position: absolute;
+  z-index: -10;
+  width:10%;
+  left:70%;
+  top:25%;
+  padding:0.2em;
+  text-align: center;
+  background-color: rgba(255,255,0,0.5);
+  box-shadow:0em 0em 0.5em 0.5em rgba(255,255,0,0.5);
+}
+#score {
+  border-radius:1em;
+  
+  position: absolute;
+  z-index: -10;
+  width:10%;
+  left:70%;
+  top:5%;
+  padding:0.2em;
+  text-align: center;
+  background-color: rgba(255,255,0,0.5);
+  box-shadow:0em 0em 0.5em 0.5em rgba(255,255,0,0.5);
+}
+
+.dialog {
+	display:none;
+}
+
+.pauseButton img, .muteButton img{
+  width:50px;
+  height:50px;
+}
