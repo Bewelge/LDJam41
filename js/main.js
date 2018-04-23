@@ -2890,7 +2890,7 @@ function moveBullets() {
                             if (y > y2 && y < y2 + tileSize) {
                                 let dis = Distance(x, y, x2, y2);
                                 if (dis < lowDis) {
-                                    damageSolidTile(key, j, damage * bulletsLasterL[3]);
+                                    damageSolidTile(key, j, damage * bulletsLaserL[3]);
 
                                     bulletsLaserL[4] = x + Math.cos(ang) * (dis);
                                     bulletsLaserL[5] = y + tileSize + Math.sin(ang) * (dis);
