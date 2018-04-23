@@ -263,7 +263,8 @@ function restart() {
 
     paused = false;
     restarting = false;
-    player.pos.x = width / 2;
+    groundY = Math.floor((gameH - 1) * tileSize);
+    player.pos.x = (width-right) / 2;
     player.pos.y = groundY;
     dead = false;
     /*bgAudio.playBackRate = 0.7;*/
@@ -1518,7 +1519,7 @@ function drawRockets() {
 
 function drawLives() {
     for (let i = 0; i < player.lives; i++) {
-        ctx.drawImage(images.heart, right + rightW / 4 * i, 10, rightW / 4, rightW / 4);
+        ctx.drawImage(images.heart, right + rightW / 4 * i, 10, tileSize, tileSize);
     }
 }
 
