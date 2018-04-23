@@ -1546,7 +1546,8 @@ function drawAmmo() {
         let tx = player.weapL.ammo;
 
         let wd = ctx.measureText(tx).width;
-        ctx.drawImage(images[player.weapL.img],width*0.5*0.35-wd/2-tileSize,height*0.9,tileSize * images[player.weapL.img].width/(sc*50),tileSize*images[player.weapL.img].width/50 )
+        let sc = images[player.weapL.img].width/images[player.weapL.img].width;
+        ctx.drawImage(images[player.weapL.img],width*0.5*0.5-wd/2-tileSize,height*0.9,tileSize * images[player.weapL.img].width/(sc*50),tileSize*images[player.weapL.img].width/50 )
         ctx.fillText(tx, width * 0.5 * 0.35 - wd / 2, height * 0.95);
     }
 }
