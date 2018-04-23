@@ -1535,9 +1535,9 @@ function drawAmmo() {
             tx = "∞";
         }
         let wd = ctx.measureText(tx).width;
-        ctx.fillText(tx, width * 0.5 * 0.85 - wd / 2, height * 0.95);
         let sc = images[player.weapR.img].width/images[player.weapR.img].width;
         ctx.drawImage(images[player.weapR.img],width*0.5*0.85-wd/2-tileSize,height*0.9,tileSize * images[player.weapR.img].width/(sc*50),tileSize*images[player.weapR.img].width/50 )
+        ctx.fillText(tx, width * 0.5 * 0.85 - wd / 2, height * 0.95);
     }
     if (player.weapL) {
         ctx.fillStyle = "rgba(255,255,255,0.5)";
@@ -1546,6 +1546,7 @@ function drawAmmo() {
         let tx = player.weapL.ammo;
 
         let wd = ctx.measureText(tx).width;
+        ctx.drawImage(images[player.weapL.img],width*0.5*0.35-wd/2-tileSize,height*0.9,tileSize * images[player.weapL.img].width/(sc*50),tileSize*images[player.weapL.img].width/50 )
         ctx.fillText(tx, width * 0.5 * 0.35 - wd / 2, height * 0.95);
     }
 }
