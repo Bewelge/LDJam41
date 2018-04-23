@@ -301,7 +301,7 @@ window.addEventListener("resize", function() {
 
     }
     /*gameH = Math.floor(height / tileSize);*/
-    gameW = 20; //Math.floor(width/2/tileSize);
+    gameW = 15; //Math.floor(width/2/tileSize);
     groundY = Math.floor((gameH - 1) * tileSize);
 })
 
@@ -333,7 +333,7 @@ function start() {
     qrtSize = Math.floor(hlfSize / 2);
     tileSize = Math.floor(height * 0.9 / gameH); //Math.sqrt(width * height) / 50;
     /*gameH = Math.floor(height / tileSize);*/
-    gameW = 20; //Math.floor(width/2/tileSize);
+    gameW = 15; //Math.floor(width/2/tileSize);
     width = Math.min(width,gameW*tileSize*2)
     right = Math.ceil(gameW * tileSize);
     rightW = Math.floor(width - right);
