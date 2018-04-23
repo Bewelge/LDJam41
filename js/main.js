@@ -999,7 +999,7 @@ function spawnBrick() {
 
     }
     let rndCol = Math.floor(Math.random() * (gameW - dimX));
-    let br = new brick(tiles, rndCol * tileSize, -dimY * tileSize, rndCol, 10 + Math.pow(1.1, difficulty), dimX, dimY);
+    let br = new brick(tiles, rndCol * tileSize, -dimY * tileSize, rndCol, 10 + Math.pow(1.2, difficulty), dimX, dimY);
     bricks.push(br);
 }
 var difficulty = 0;
