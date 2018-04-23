@@ -278,32 +278,32 @@ function restart() {
 
 }
 
-window.addEventListener("resize", function() {
-    width = window.innerWidth || document.documentElement.clientWidth / 1 || document.body.clientWidth / 1;
-    height = window.innerHeight || document.documentElement.clientHeight / 1 || document.body.clientHeight / 1;
-    width = Math.floor(width);
-    height = Math.floor(height);
-    $("body").css("width", width);
-    $("body").css("height", height);
-    hlfSize = Math.floor(Math.min(width, height) / 2);
-    qrtSize = Math.floor(hlfSize / 2);
-    let newtileSize = Math.floor(height * 0.9 / gameH); //Math.sqrt(width * height) / 50;
-    let scale = newtileSize / tileSize;
-    right = Math.ceil(tileSize * gameW)
-    rightW = Math.floor(width - right);
-    player.pos.x *= scale;
-    player.pos.y *= scale;
-    $("#upgrades").css("left",right);
-    $("#upgrades").css("width",rightW);
-    for (let key in bricks) {
-        bricks.pos.x *= scale;
-        bricks.pos.y *= scale;
+// window.addEventListener("resize", function() {
+//     width = window.innerWidth || document.documentElement.clientWidth / 1 || document.body.clientWidth / 1;
+//     height = window.innerHeight || document.documentElement.clientHeight / 1 || document.body.clientHeight / 1;
+//     width = Math.floor(width);
+//     height = Math.floor(height);
+//     $("body").css("width", width);
+//     $("body").css("height", height);
+//     hlfSize = Math.floor(Math.min(width, height) / 2);
+//     qrtSize = Math.floor(hlfSize / 2);
+//     let newtileSize = Math.floor(height * 0.9 / gameH); //Math.sqrt(width * height) / 50;
+//     let scale = newtileSize / tileSize;
+//     right = Math.ceil(tileSize * gameW)
+//     rightW = Math.floor(width - right);
+//     player.pos.x *= scale;
+//     player.pos.y *= scale;
+//     $("#upgrades").css("left",right);
+//     $("#upgrades").css("width",rightW);
+//     for (let key in bricks) {
+//         bricks.pos.x *= scale;
+//         bricks.pos.y *= scale;
 
-    }
-    /*gameH = Math.floor(height / tileSize);*/
-    gameW = 15; //Math.floor(width/2/tileSize);
-    groundY = Math.floor((gameH - 1) * tileSize);
-})
+//     }
+//     /*gameH = Math.floor(height / tileSize);*/
+//     gameW = 15; //Math.floor(width/2/tileSize);
+//     groundY = Math.floor((gameH - 1) * tileSize);
+// })
 
 function start() {
     paused=true;
@@ -704,8 +704,8 @@ function movePlayerY(am) {
 }
 
 function getGroundTile() {
-    let curYTile = Math.floor(player.pos.y / tileSize);
-    let curXTile = Math.floor(player.pos.x / tileSize);
+    let curYTile = Math.max(0,Math.floor(player.pos.y / tileSize));
+    let curXTile = Math.max(0,Math.floor(player.pos.x / tileSize));
     try {
 
         while (!solidBricks[curYTile][curXTile][0]) {
