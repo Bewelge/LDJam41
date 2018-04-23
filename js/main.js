@@ -3389,13 +3389,13 @@ var upgrades = {
             key: "fireRate",
             name: "Increase Fire-Rate",
             price: function() {
-                return 50 * Math.pow(1 + this.bought, 4);
+                return 50 * Math.pow(1 + this.bought, 6);
             },
             effect: function() {
                 fireRate*=2;
 
             },
-            max: 10,
+            max: 2,
             bought: 0,
 
         },
